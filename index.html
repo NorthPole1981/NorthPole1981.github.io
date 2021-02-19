@@ -152,6 +152,277 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="post-Elasticsearch入门" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2021/02/19/Elasticsearch%E5%85%A5%E9%97%A8/">Elasticsearch入门</a>
+    </h1>
+  
+
+        
+        <a href="/2021/02/19/Elasticsearch%E5%85%A5%E9%97%A8/" class="archive-article-date">
+  	<time datetime="2021-02-19T14:24:12.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2021-02-19</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>Elasticsearch（以下简称ES）是我想写想了很久的一个系列，因为他是我在老东家离职前刚接触的最后一个新技术，当时就是对某子业务的商品搜索做改造，从MySQL迁移商品数据到ES中。</p>
+<p>我先说一下当时为什么会有场景需要引用到ES，上面我说到是一个商品库的搜索改造，在之前这个子业务体量很小使用的人不多，使用场景也比较单一，所以我们就觉得放在数据库里也没什么，因为正常需求也是可以满足的。</p>
+<p>在数据库我们需要搜索的时候简单，直接模糊查询就好了 select id from item where itemName like %xxx%</p>
+<p>但是如果你搜索的关键词有一点不对，就可能匹配不上这个商品，比如商品叫：“烦死了，打不掉”  而你搜索的关键词是：“烦了”  就匹配不上了，但是他们其实在意思上是有一点关联的对吧？搜出来用户也是能接受的。</p>
+<p>而且随着你业务的发展，可能需要你搜索出商品名称带这个关键词且描述里面也带的，这个场景其实多写点业务代码也能满足，但是条件越来越多的时候呢？</p>
+<p>还有就是业务发展往往是指数级别的，当时我们从几十万到百万用了一年，但是百万到亿就用了几个月，而且数据量级还在不断增长，这个时候放在数据库就不光是业务条件不能满足了，性能也不是加个索引能搞定的了。</p>
+<h2 id="正文"><a href="#正文" class="headerlink" title="正文"></a>正文</h2><p>我先介绍一下目前主流的几种数据库存储方式 ：</p>
+<h3 id="行存储：同一行的数据被物理的存储在一起"><a href="#行存储：同一行的数据被物理的存储在一起" class="headerlink" title="行存储：同一行的数据被物理的存储在一起"></a>行存储：同一行的数据被物理的存储在一起</h3><p>常见的行式数据库系统有：<code>MySQL</code>、<code>Postgres</code>和<code>MS SQL Server</code>。</p>
+<p>存储结构：</p>
+<table>
+<thead>
+<tr>
+<th align="center">Id</th>
+<th align="center">Name</th>
+<th align="center">Size</th>
+<th align="center">Sex</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">1</td>
+<td align="center">Aobing</td>
+<td align="center">24</td>
+<td align="center">Male</td>
+</tr>
+<tr>
+<td align="center">2</td>
+<td align="center">Sanwai</td>
+<td align="center">1</td>
+<td align="center">Female</td>
+</tr>
+<tr>
+<td align="center">3</td>
+<td align="center">Jidan</td>
+<td align="center">1</td>
+<td align="center">Male</td>
+</tr>
+</tbody></table>
+<p>某些场景下行存储数据库的查询效率：</p>
+<p><img src="https://s3.ax1x.com/2021/02/19/yhx2h8.gif" alt="图片"></p>
+<h3 id="列存储-：来自不同列的值被单独存储，来自同一列的数据被存储在一起"><a href="#列存储-：来自不同列的值被单独存储，来自同一列的数据被存储在一起" class="headerlink" title="列存储 ：来自不同列的值被单独存储，来自同一列的数据被存储在一起"></a>列存储 ：来自不同列的值被单独存储，来自同一列的数据被存储在一起</h3><p>常见的列式数据库有：Vertica、 Paraccel (Actian Matrix，Amazon Redshift)、 Sybase IQ、 Exasol、 Infobright、 InfiniDB、 MonetDB (VectorWise， Actian Vector)、 LucidDB、 SAP HANA、 Google Dremel、 Google PowerDrill、 Druid、 kdb+、Hbase、clickhouse。</p>
+<table>
+<thead>
+<tr>
+<th align="center">ID</th>
+<th align="center">1</th>
+<th align="center">2</th>
+<th align="center">3</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">name</td>
+<td align="center">aobing</td>
+<td align="center">sanwai</td>
+<td align="center">jidan</td>
+</tr>
+<tr>
+<td align="center">size</td>
+<td align="center">24</td>
+<td align="center">1</td>
+<td align="center">1</td>
+</tr>
+<tr>
+<td align="center">sex</td>
+<td align="center">female</td>
+<td align="center">Male</td>
+<td align="center">sex</td>
+</tr>
+</tbody></table>
+<p>某些场景下列存储数据库的查询效率：</p>
+<p><img src="https://s3.ax1x.com/2021/02/19/yhxW9S.gif" alt="图片"></p>
+<blockquote>
+<p>最近我在接触Clickhouse他就是列式存储，他之所以这么快，主要是以下三点原因：</p>
+<h3 id="输入-输出"><a href="#输入-输出" class="headerlink" title="输入/输出"></a>输入/输出</h3><ol>
+<li>针对分析类查询，通常只需要读取表的一小部分列。在列式数据库中你可以只读取你需要的数据。例如，如果只需要读取100列中的5列，这将帮助你最少减少20倍的I/O消耗。</li>
+<li>由于数据总是打包成批量读取的，所以压缩是非常容易的。同时数据按列分别存储这也更容易压缩。这进一步降低了I/O的体积。</li>
+<li>由于I/O的降低，这将帮助更多的数据被系统缓存。</li>
+</ol>
+</blockquote>
+<p><strong>注</strong>：这里列出这两个只是对比一些特殊场景的效率差，也是为后面es的快和数据结构做铺垫而已，事实上Clickhouse这样的数据库也只适合某些场景，大部分场景还得行式数据库。</p>
+<p>大家感兴趣我后面可以来点Clickhouse的分享（虽然我也还在看）</p>
+<p>接下来就说另外一种存储结构了：</p>
+<h2 id="文档"><a href="#文档" class="headerlink" title="文档"></a>文档</h2><p>实际上 es在某种程度上是和列式文档有一定的相似之处的，大家往后面看就知道了</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">&quot;name&quot;: &quot;name&quot;</span><br><span class="line">&quot;size&quot;: 24</span><br><span class="line">&quot;sex&#39;: &quot;male&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面我介绍了几种常见的存储结构其实是为了说明一下es的场景，以及es的一些优势，我们都知道数据库是有索引的，而且也挺快的，那es又是怎么存储数据，他的索引又是咋样的呢?</p>
+<h2 id="倒排索引"><a href="#倒排索引" class="headerlink" title="倒排索引"></a>倒排索引</h2><p>倒排顾名思义就是通过Value去找key，跟我们传统意义的根据key找value还不太一样。</p>
+<p>举个例子，还是上面的数据，我们可以看到es会建立以下的索引：</p>
+<h3 id="Name-倒排索引"><a href="#Name-倒排索引" class="headerlink" title="Name 倒排索引"></a>Name 倒排索引</h3><table>
+<thead>
+<tr>
+<th align="left">Term</th>
+<th align="center">Posting List</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">aobing</td>
+<td align="center">1</td>
+</tr>
+<tr>
+<td align="left">sanwai</td>
+<td align="center">2</td>
+</tr>
+<tr>
+<td align="left">jidan</td>
+<td align="center">3</td>
+</tr>
+</tbody></table>
+<h3 id="Size倒排索引"><a href="#Size倒排索引" class="headerlink" title="Size倒排索引"></a>Size倒排索引</h3><table>
+<thead>
+<tr>
+<th align="center">Term</th>
+<th align="center">Posting List</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">24</td>
+<td align="center">1</td>
+</tr>
+<tr>
+<td align="center">1</td>
+<td align="center">[2,3]</td>
+</tr>
+</tbody></table>
+<h3 id="Sex倒排索引"><a href="#Sex倒排索引" class="headerlink" title="Sex倒排索引"></a>Sex倒排索引</h3><table>
+<thead>
+<tr>
+<th align="center">Term</th>
+<th align="center">Posting List</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">Female</td>
+<td align="center">2</td>
+</tr>
+<tr>
+<td align="center">Male</td>
+<td align="center">[1,3]</td>
+</tr>
+</tbody></table>
+<p>大家可以看到所有的倒排所有都有Term和Posting List这两个概念，Posting list就是一个int的数组，存储了所有符合某个term的文档id。</p>
+<p>怎么根据value找key呢？就比如我要找所有性别是男生的人，Sex的倒排索引的Posting list可以告诉我是id为1和3的人，那再通过Name的term我可以看到1的是人aobing，3的人是鸡蛋，依次类推找到所有信息。</p>
+<p>Es的查询速度是非常快的，但是目前看来如果只是以Term的样子去查找并不快呀？是为什么呢？</p>
+<p>这里就会引出接下来的两个概念，Term Dictionary和Term Index。</p>
+<p>Term Dictionary：这个很好理解，我上面说过都是各种Term组成的，那为了查找Term方便，es把所有的Term都排序了，是二分法查找的。</p>
+<p><img src="https://s3.ax1x.com/2021/02/19/yhxgtf.jpg" alt="图片"></p>
+<p>Trem Index：这是为了优化Term Dictionary而存在的，大家想呀这么多Term光是排序了肯定也不行，想要快就得放到内存，但是es数据量级往往是很大的，那放在磁盘？磁盘的寻址又会很慢，那怎么去减少磁盘上的寻址开销呢？Term Index</p>
+<p>其实就是跟新华字典一样，每个字母开头的是哪些，再按照拼音去排序。</p>
+<p><img src="https://s3.ax1x.com/2021/02/19/yhxf1g.jpg" alt="tup"></p>
+<p>这就是三者的关系，是一张很经典的图了，基本上所有学es的人都应该看到过。</p>
+<p>Term Index就存了一些前缀和映射关系，这样可以大大减少磁盘的随机读次数了。</p>
+<h3 id="巧妙压缩"><a href="#巧妙压缩" class="headerlink" title="巧妙压缩"></a>巧妙压缩</h3><p>大家是不是发现这个设计是很巧妙的？而且es的检索速度比MySQL是快很多的，大家在使用MySQL的时候可以发现其实索引跟Trem Dictionary是一样的，但是es多了一个Index 多了一层筛选，少了一些随机次数。</p>
+<p>还有一点我很想提一下，就是Term index 在磁盘的存储结构，这个在我历史文章有写过，而且当时我还踩过他的坑，今天鉴于篇幅，我就简单介绍一下。</p>
+<p>FST大家可以理解为一种压缩技术，最简单化通过压缩字节的方式，上面我说了Term index放到内存都放不下，但是压缩一下呢？</p>
+<p><img src="https://s3.ax1x.com/2021/02/19/yhxcAP.jpg" alt="图片"></p>
+<p>细节我就不展开了，下面这个文章解释的特别详细，因为这是一篇大概科普的，后面我会专门出文章介绍集群和他压缩的细节。</p>
+<p><img src="https://s3.ax1x.com/2021/02/19/yhx4Xj.jpg" alt="图片"></p>
+<p>链接：<a target="_blank" rel="noopener" href="https://cs.nyu.edu/~mohri/pub/fla.pdf">https://cs.nyu.edu/~mohri/pub/fla.pdf</a></p>
+<p>接下来再介绍一些es里面我觉得很重要的概念吧：</p>
+<h2 id="接近实时（NRT）"><a href="#接近实时（NRT）" class="headerlink" title="接近实时（NRT）"></a>接近实时（NRT）</h2><p>ES写入的数据会先写到一个内存bufferr中去(在buffer里的时候数据是搜索不到的)，然后每隔默认是一秒会刷到os cache。</p>
+<p>操作系统里面，磁盘文件其实都有一个东西，叫做os cache，操作系统缓存，就是说数据写入磁盘文件之前，会先进入os cache，先进入操作系统级别的一个内存缓存中去。</p>
+<p>只要buffer中的数据被refresh操作，刷入os cache中，就代表这个数据就可以被搜索到了。默认是每隔1秒refresh一次的，所以es是准实时的，因为写入的数据1秒之后才能被看到。</p>
+<p><strong>为什么要这么设计呢？</strong></p>
+<p>简单我们看一下不这么设计会怎么样：</p>
+<p><img src="https://s3.ax1x.com/2021/02/19/yhxhcQ.jpg" alt="图片"></p>
+<p>如果写入缓存之后直接刷到硬盘，其实是十分消耗资源的，而且写了马上去硬盘读取，并发量很难上去，你可以想象上万QPS写入的时候，还去查询磁盘，是怎样一个灾难级别的现场。</p>
+<p><strong>那es怎么做的呢？</strong></p>
+<p><img src="https://s3.ax1x.com/2021/02/19/yhxIns.jpg" alt="图片"></p>
+<p>数据写入到buffer，然后再每秒刷到cache，这个时候就可以被搜到了，所以说准实时，而不是实时就是这一秒的差距，这样设计可以让磁盘压力减少不说，写入和查询都不会受到影响，并发也就上去了。</p>
+<h2 id="分词"><a href="#分词" class="headerlink" title="分词"></a>分词</h2><p>文本分析（Analysis）是把全文本转换一系列单词(term/token)的过程，也称为分词。</p>
+<p>当一个文档被索引时，每个Term都可能会创建一个倒排索引。倒排索引的过程就是将文档通过分词器（Analyzer）分成一个一个的Term，每一个Term都指向包含这个Term的文档集合。</p>
+<p>分词是es比较核心的功能，但是他默认的分词其实对中文并不友好，比如我搜中国，那可能会把带中和带国的都搜出来，但是中国就是一个词汇不应该这样分。</p>
+<p>现在都是可以采用机器学习算法来分词，还有一些中文分词插件，比如ik分词器。</p>
+<p>他内置分词器的在英文场景是比较好用的。</p>
+<h2 id="脑裂"><a href="#脑裂" class="headerlink" title="脑裂"></a>脑裂</h2><p>脑裂问题其实在集群部署的机器上都是会存在的，假设现在es集群有两个节点，节点1是主节点对外提供服务，节点2是副本分片节点。</p>
+<p><img src="https://s3.ax1x.com/2021/02/19/yhxoBn.jpg" alt="图片"></p>
+<p>现在两个节点因为网络原因断联了，会发现什么？主节点发现自己是主节点继续对外提供服务，副本节点发现没有主节点了，选举自己是主节点，也对外提供服务了，因为主节点不可用他也是被迫当主节点的（狗头）。</p>
+<p><img src="https://s3.ax1x.com/2021/02/19/yhxT7q.jpg" alt="图片"></p>
+<p><img src="https://s3.ax1x.com/2021/02/19/yhxHA0.jpg" alt="图片"></p>
+<p>对于调用者来说，这是很难发现差别的，除非去对比数据，而我之前在生产环境就发生过脑裂的情况，还是用户反馈的，因为搜索一个词汇他有时候能搜出那个商品，有时候不能，因为请求打在不同的节点上了。</p>
+<p>那正常我们会怎么解决呢？elasticsearch.yml中有个配置:<code>discovery.zen.minimum_master_nodes</code> 这个参数决定了在选主过程中需要有多少个节点通信，默认是1，设置的原则就是设置为 集群节点数量/2+1个。</p>
+<p>如果你的集群是三个节点，那这个参数就设置为3/2+1=2个，那挂了一个，另外两个可以通信，所以可以选出一个主的，如果你集群是两个个节点，参数还是2，但是你发现挂了一个只有一个节点自己跟自己通信，就不会选主了。</p>
+<p>但是这样也有弊端只有2个节点的时候，挂一个就相当于服务不可用了，所以大家要保证集群是三个以上是最好的。</p>
+<blockquote>
+<p>Elasticsearch的选举算法基于 <code>Bully</code> 选举算法，简单的说，在 <code>Bully</code> 算法中，每个节点都有一个编号，只有编号最大的存活节点才能成为 <code>master</code> 节点。<code>Bully</code>算法的具体过程为：</p>
+<p>当任何一个进程P发现 <code>master</code> 不响应请求时，它发起一次选举，选举过程如下：</p>
+<p>（1）P进程向所有编号比它大的进程发送一个 <code>election</code> 消息；</p>
+<p>（2）如果无人响应，则P获胜，成为 <code>master</code>；</p>
+<p>（3）如果编号比它大的进程响应，则由响应者接管选举工作，P的工作完成。</p>
+<p>任何一个时刻，一个进程只能从编号比它小的进程接受 <code>election</code> 消息，当消息到达时，接受者发送一个 <code>OK</code> 消息给发送者，表明它在运行，接管工作。</p>
+<p>最终除了一个进程外，其他进程都放弃，那个进程就是新的协调者，随后协调者将获胜消息发送给其他所有进程，通知它们新的协调者诞生了。</p>
+</blockquote>
+<h2 id="ELK"><a href="#ELK" class="headerlink" title="ELK"></a>ELK</h2><p>其实提到ES往往都是ELK三兄弟一起提到的，最后在收尾的地方，我就说一下另外两个兄弟吧。</p>
+<p>L是Logstash，Logstash是一个开源数据收集引擎，具有实时管道功能。Logstash可以动态地将来自不同数据源的数据统一起来，并将数据标准化到你所选择的目的地。</p>
+<p>Logstash管道有两个必需的元素：输入和输出，以及一个可选元素：过滤器。输入插件从数据源那里消费数据，过滤器插件根据你的期望修改数据，输出插件将数据写入目的地。</p>
+<p>K就是Kibana，Kibana是一个针对Elasticsearch的开源分析及可视化平台，用来搜索、查看交互存储在Elasticsearch索引中的数据。使用Kibana，可以通过各种图表进行高级数据分析及展示。</p>
+<p>Kibana让海量数据更容易理解。它操作简单，基于浏览器的用户界面可以快速创建仪表板（dashboard）实时显示Elasticsearch查询动态。</p>
+<p>设置Kibana非常简单，无需编码或者额外的基础架构，几分钟内就可以完成Kibana安装并启动Elasticsearch索引监测。</p>
+<p><img src="https://s3.ax1x.com/2021/02/19/yhxbNV.jpg" alt="图片"></p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>这只是简单的介绍一下es的一些基础知识，他的压缩算法，还有集群，分片，副本复制等等我都没聊，下篇文章我会介绍的</p>
+
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">ES</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2021/02/19/Elasticsearch%E5%85%A5%E9%97%A8/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+<aside class="wrap-side-operation">
+    <div class="mod-side-operation">
+        
+        <div class="jump-container" id="js-jump-container" style="display:none;">
+            <a href="javascript:void(0)" class="mod-side-operation__jump-to-top">
+                <i class="icon-font icon-back"></i>
+            </a>
+            <div id="js-jump-plan-container" class="jump-plan-container" style="top: -11px;">
+                <i class="icon-font icon-plane jump-plane"></i>
+            </div>
+        </div>
+        
+        
+    </div>
+</aside>
+
+
+
+
+  
     <article id="post-Spring-Boot-Dubbo-入门" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -956,7 +1227,7 @@
 		<ul class="article-tag-list">
 			 
         		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">SPRING BOOT</a>
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color2">SPRING</a>
         		</li>
       		
 		</ul>
@@ -1160,15 +1431,19 @@ return o(i(t),arguments.length<2?void 0:u(arguments[1]))}})},function(t,n,r){var
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color2">SPRING BOOT</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">教程</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">Spring</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">ES</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color2">SPRING</a>
               </li>
             
             <div class="clearfix"></div>
