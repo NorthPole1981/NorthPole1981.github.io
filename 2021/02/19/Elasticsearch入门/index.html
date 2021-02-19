@@ -28,7 +28,7 @@
 <meta property="og:image" content="https://s3.ax1x.com/2021/02/19/yhxHA0.jpg">
 <meta property="og:image" content="https://s3.ax1x.com/2021/02/19/yhxbNV.jpg">
 <meta property="article:published_time" content="2021-02-19T14:24:12.000Z">
-<meta property="article:modified_time" content="2021-02-19T14:39:52.846Z">
+<meta property="article:modified_time" content="2021-02-19T14:43:24.109Z">
 <meta property="article:author" content="John Doe">
 <meta property="article:tag" content="ES">
 <meta name="twitter:card" content="summary">
@@ -270,7 +270,7 @@
 <p>大家感兴趣我后面可以来点Clickhouse的分享（虽然我也还在看）</p>
 <p>接下来就说另外一种存储结构了：</p>
 <h2 id="文档"><a href="#文档" class="headerlink" title="文档"></a>文档</h2><p>实际上 es在某种程度上是和列式文档有一定的相似之处的，大家往后面看就知道了</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">&quot;name&quot;: &quot;name&quot;</span><br><span class="line">&quot;size&quot;: 24</span><br><span class="line">&quot;sex&#39;: &quot;male&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line"><span class="attr">&quot;name&quot;</span>: <span class="string">&quot;name&quot;</span></span><br><span class="line"><span class="string">&quot;size&quot;</span>: <span class="number">24</span></span><br><span class="line"><span class="string">&quot;sex&#x27;: &quot;</span>male<span class="string">&quot;</span></span><br><span class="line"><span class="string">&#125;</span></span><br></pre></td></tr></table></figure>
 <p>上面我介绍了几种常见的存储结构其实是为了说明一下es的场景，以及es的一些优势，我们都知道数据库是有索引的，而且也挺快的，那es又是怎么存储数据，他的索引又是咋样的呢?</p>
 <h2 id="倒排索引"><a href="#倒排索引" class="headerlink" title="倒排索引"></a>倒排索引</h2><p>倒排顾名思义就是通过Value去找key，跟我们传统意义的根据key找value还不太一样。</p>
 <p>举个例子，还是上面的数据，我们可以看到es会建立以下的索引：</p>
@@ -490,6 +490,15 @@
   
 <nav id="article-nav">
   
+    <a href="/2021/02/19/%E6%B7%B1%E5%85%A5AQS/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          深入AQS
+        
+      </div>
+    </a>
+  
   
     <a href="/2021/02/19/Spring-Boot-Dubbo-%E5%85%A5%E9%97%A8/" id="article-nav-older" class="article-nav-link-wrap">
       <div class="article-nav-title">Spring Boot Dubbo 入门</div>
@@ -631,6 +640,10 @@ return o(i(t),arguments.length<2?void 0:u(arguments[1]))}})},function(t,n,r){var
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color2">SPRING</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">java</a>
               </li>
             
             <div class="clearfix"></div>
